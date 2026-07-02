@@ -27,7 +27,7 @@ reusable** module with no dependency on the Ruby runtime — a sibling of
 > **What it is — and isn't.** Detecting an offense from a source string — its cop
 > name, its line/column, its message text — is fully deterministic and needs **no
 > interpreter**, so it lives here as pure Go. The gem's file-walking and its
-> ~500-cop breadth are out of scope: this is a **core** cop set (~23 cops across
+> ~500-cop breadth are out of scope: this is a **core** cop set (22 cops across
 > Layout / Style / Lint / Metrics) implemented faithfully rather than a fake of
 > the whole. Applying autocorrections is left to the host; each cop computes the
 > edit (a source-range `Correction`) but does not rewrite your file.

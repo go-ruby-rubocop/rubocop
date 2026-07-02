@@ -75,12 +75,10 @@ func (trailingEmptyLinesCop) Inspect(src *Source, _ CopConfig) []Offense {
 		}
 		return nil
 	}
-	// blank >= 1: "N trailing blank lines detected." reported after content.
+	// blank >= 1: "N trailing blank lines detected." reported after content. The
+	// gem uses the plural "lines" even for a single trailing blank line.
 	line := len(src.Lines) - blank + 1
-	msg := "1 trailing blank line detected."
-	if blank > 1 {
-		msg = fmt.Sprintf("%d trailing blank lines detected.", blank)
-	}
+	msg := fmt.Sprintf("%d trailing blank lines detected.", blank)
 	// Correction: cut the trailing blank lines' bytes down to a single newline.
 	contentEnd := src.offsetOf(len(src.Lines)-blank+1, 1)
 	if contentEnd > 0 {
@@ -210,10 +208,11 @@ func (indentationWidthCop) Inspect(src *Source, cfg CopConfig) []Offense {
 		want := openerIndent + width
 		if got != want && strings.TrimSpace(src.line(bodyLine)) != "end" {
 			offs = append(offs, Offense{
-				CopName:  "Layout/IndentationWidth",
-				Location: Location{Line: bodyLine, Column: 1, Length: got},
-				Message:  fmt.Sprintf("Use %d (not %d) spaces for indentation.", width, got-openerIndent),
-				Severity: Convention,
+				CopName:     "Layout/IndentationWidth",
+				Location:    Location{Line: bodyLine, Column: 1, Length: got},
+				Message:     fmt.Sprintf("Use %d (not %d) spaces for indentation.", width, got-openerIndent),
+				Severity:    Convention,
+				Correctable: true,
 			})
 		}
 		_ = i

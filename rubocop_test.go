@@ -56,7 +56,7 @@ func TestLayoutTrailingEmptyLines(t *testing.T) {
 		"3:1: C: [Correctable] Layout/TrailingEmptyLines: 2 trailing blank lines detected.")
 	// Single trailing blank line.
 	wantOne(t, inspectOne(t, "Layout/TrailingEmptyLines", "t.rb", "a = 1\n\n", nil),
-		"2:1: C: [Correctable] Layout/TrailingEmptyLines: 1 trailing blank line detected.")
+		"2:1: C: [Correctable] Layout/TrailingEmptyLines: 1 trailing blank lines detected.")
 	// Missing final newline.
 	wantOne(t, inspectOne(t, "Layout/TrailingEmptyLines", "t.rb", "a = 1", nil),
 		"1:6: C: [Correctable] Layout/TrailingEmptyLines: Final newline missing.")
@@ -83,7 +83,7 @@ func TestLayoutEmptyLines(t *testing.T) {
 
 func TestLayoutIndentationWidth(t *testing.T) {
 	wantOne(t, inspectOne(t, "Layout/IndentationWidth", "t.rb", "def foo\n    x = 1\n    x\nend\n", nil),
-		"2:1: C: Layout/IndentationWidth: Use 2 (not 4) spaces for indentation.")
+		"2:1: C: [Correctable] Layout/IndentationWidth: Use 2 (not 4) spaces for indentation.")
 	wantNone(t, inspectOne(t, "Layout/IndentationWidth", "t.rb", "def foo\n  x = 1\nend\n", nil))
 	// Custom width honoured.
 	wantNone(t, inspectOne(t, "Layout/IndentationWidth", "t.rb", "def foo\n    x = 1\nend\n",

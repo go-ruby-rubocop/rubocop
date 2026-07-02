@@ -27,10 +27,10 @@ var copDefaults = map[string]CopConfig{
 	"Style/NumericLiterals":            {Enabled: true, Params: map[string]any{"MinDigits": 5}},
 
 	// Lint
-	"Lint/UselessAssignment":         {Enabled: true},
-	"Lint/UnusedMethodArgument":      {Enabled: true},
-	"Lint/DuplicateMethods":          {Enabled: true},
-	"Lint/AmbiguousOperator":         {Enabled: true},
+	"Lint/UselessAssignment":           {Enabled: true},
+	"Lint/UnusedMethodArgument":        {Enabled: true},
+	"Lint/DuplicateMethods":            {Enabled: true},
+	"Lint/AmbiguousOperator":           {Enabled: true},
 	"Lint/ShadowingOuterLocalVariable": {Enabled: true},
 
 	// Metrics
