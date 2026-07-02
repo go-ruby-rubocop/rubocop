@@ -66,9 +66,6 @@ func NewSource(path, src string) *Source {
 	return s
 }
 
-// lineCount is the number of physical lines RuboCop attributes to the source.
-func (s *Source) lineCount() int { return len(s.Lines) }
-
 // line returns the 1-based line n (or "" when out of range).
 func (s *Source) line(n int) string {
 	if n < 1 || n > len(s.Lines) {
@@ -86,9 +83,6 @@ func (s *Source) offsetOf(line, col int) int {
 		off += len(s.Lines[i-1]) + 1 // +1 for the '\n'
 	}
 	off += col - 1
-	if off < 0 {
-		off = 0
-	}
 	if off > len(s.Raw) {
 		off = len(s.Raw)
 	}

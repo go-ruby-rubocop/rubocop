@@ -37,8 +37,12 @@ func summaryLine(results []FileResult) string {
 			}
 		}
 	}
-	s := fmt.Sprintf("%d %s inspected, %d %s detected",
-		files, pluralize(files, "file"), offenses, pluralize(offenses, "offense"))
+	offenseCount := fmt.Sprintf("%d %s", offenses, pluralize(offenses, "offense"))
+	if offenses == 0 {
+		offenseCount = "no offenses"
+	}
+	s := fmt.Sprintf("%d %s inspected, %s detected",
+		files, pluralize(files, "file"), offenseCount)
 	if correctable > 0 {
 		s += fmt.Sprintf(", %d %s autocorrectable",
 			correctable, pluralize(correctable, "offense"))

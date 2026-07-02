@@ -5,6 +5,8 @@
 package rubocop
 
 import (
+	"strings"
+
 	"github.com/go-ruby-parser/parser/token"
 )
 
@@ -94,7 +96,7 @@ func (redundantReturnCop) Inspect(src *Source, _ CopConfig) []Offense {
 		}
 		// The last `return` token strictly inside this def block, at the def's own
 		// nesting depth, that begins a line, is the trailing return candidate.
-		retIdx := lastTrailingReturn(toks, blocks, b)
+		retIdx := lastTrailingReturn(toks, b)
 		if retIdx < 0 {
 			continue
 		}
@@ -113,45 +115,31 @@ func (redundantReturnCop) Inspect(src *Source, _ CopConfig) []Offense {
 // lastTrailingReturn finds the `return` token that is the final statement of the
 // def block b: it is the last statement before b's `end`, at b's depth (not nested
 // inside an inner block). Returns the token index, or -1.
-func lastTrailingReturn(toks []token.Token, blocks []block, b block) int {
-	// The statement immediately preceding `end` at this depth. Walk backwards from
-	// end-1 skipping NEWLINE and any fully-nested inner block.
+func lastTrailingReturn(toks []token.Token, b block) int {
+	// The last significant token before the def's `end`. If it belongs to an inner
+	// block (its statement is a nested if/while/…), the method's final statement is
+	// that block, not a return, so there is nothing to flag.
 	i := b.endIdx - 1
-	for i > b.openIdx {
-		t := toks[i]
-		if t.Type == token.NEWLINE {
-			i--
-			continue
-		}
-		if t.Type == token.END {
-			// Jump to the matching opener of this inner block.
-			inner := blockEndingAt(blocks, i)
-			if inner >= 0 {
-				i = blocks[inner].openIdx - 1
-				continue
-			}
-		}
-		break
+	for i > b.openIdx && toks[i].Type == token.NEWLINE {
+		i--
 	}
-	// Now scan back to the start of this statement's line and check its first
-	// significant token is `return`.
+	// A trailing `end` means the last statement is a nested block: not a return.
+	if toks[i].Type == token.END {
+		return -1
+	}
+	// Scan back to the start of this statement's line; its first significant token
+	// must be `return` for the return to be the method's final statement.
 	line := toks[i].Line
 	for j := i; j > b.openIdx; j-- {
 		if toks[j].Line != line {
 			break
 		}
 		if toks[j].Type == token.RETURN {
-			return j
-		}
-	}
-	return -1
-}
-
-// blockEndingAt returns the index into blocks of the block whose end is endIdx.
-func blockEndingAt(blocks []block, endIdx int) int {
-	for i, b := range blocks {
-		if b.endIdx == endIdx {
-			return i
+			// Confirm `return` begins the statement (not e.g. a `x = return`-like
+			// mid-line token): the token before it is a NEWLINE or the def opener.
+			if toks[j-1].Type == token.NEWLINE || j-1 == b.openIdx {
+				return j
+			}
 		}
 	}
 	return -1
@@ -236,9 +224,10 @@ func bodyContentLines(src *Source, toks []token.Token, b block) []int {
 
 // --- Style/GuardClause --------------------------------------------------------
 
-// guardClauseCop flags an if/unless that wraps the entire body of a method, which
-// could be inverted into an early-return guard clause. It reports at the if/unless
-// keyword with the gem's message naming the inverted keyword.
+// guardClauseCop flags an if/unless (without an else/elsif) that is the last
+// statement of a method body: it could be inverted into an early-return guard
+// clause. It reports at the if/unless keyword with the gem's message naming the
+// inverted keyword ("return unless" for an if, "return if" for an unless).
 type guardClauseCop struct{}
 
 func (guardClauseCop) Name() string { return "Style/GuardClause" }
@@ -251,61 +240,70 @@ func (guardClauseCop) Inspect(src *Source, cfg CopConfig) []Offense {
 		if b.open.Type != token.DEF {
 			continue
 		}
-		// The def's body must be exactly one if/unless block spanning the whole body.
-		inner := soleInnerBlock(blocks, b)
-		if inner < 0 {
+		ib := lastStatementBlock(blocks, toks, b)
+		if ib < 0 {
 			continue
 		}
-		ib := blocks[inner]
-		if ib.open.Type != token.IF && ib.open.Type != token.UNLESS {
+		cond := blocks[ib]
+		// The last statement must be a plain if/unless (no else/elsif — an if/else
+		// is not a guard-clause candidate) whose body meets MinBodyLength.
+		if cond.open.Type != token.IF && cond.open.Type != token.UNLESS {
 			continue
 		}
-		if hasElseOrElsif(toks, ib) {
-			continue // an if/else is not a guard-clause candidate here
-		}
-		if len(bodyContentLines(src, toks, ib)) < cfg.Int("MinBodyLength", 1) {
+		if hasElseOrElsif(toks, cond) ||
+			len(bodyContentLines(src, toks, cond)) < cfg.Int("MinBodyLength", 1) {
 			continue
 		}
 		inverted := "return unless"
-		if ib.open.Type == token.UNLESS {
+		if cond.open.Type == token.UNLESS {
 			inverted = "return if"
 		}
+		condText := conditionText(src, cond)
 		offs = append(offs, Offense{
 			CopName:  "Style/GuardClause",
-			Location: Location{Line: ib.open.Line, Column: ib.open.Col, Length: len(tokenKeyword(ib.open.Type))},
-			Message: "Use a guard clause (" + inverted + " x) instead of wrapping the " +
-				"code inside a conditional expression.",
-			Severity: Convention,
+			Location: Location{Line: cond.open.Line, Column: cond.open.Col, Length: len(tokenKeyword(cond.open.Type))},
+			Message: "Use a guard clause (" + inverted + " " + condText + ") instead of " +
+				"wrapping the code inside a conditional expression.",
+			Severity:    Convention,
+			Correctable: true,
 		})
 	}
 	return offs
 }
 
-// soleInnerBlock returns the index of the only block directly nested in b (at b's
-// body depth), or -1 if there is not exactly one such block or other statements
-// share the body.
-func soleInnerBlock(blocks []block, b block) int {
-	found := -1
+// conditionText returns the verbatim source of an if/unless condition: the text
+// from just after the keyword to the end of the condition (the keyword's line,
+// trimmed, with a trailing `then` removed). It is the placeholder the gem inserts
+// into the GuardClause message (e.g. "foo?", "a && b").
+func conditionText(src *Source, cond block) string {
+	line := src.line(cond.open.Line)
+	// Slice after the keyword: cond.open.Col is 1-based start of if/unless.
+	start := cond.open.Col - 1 + len(tokenKeyword(cond.open.Type))
+	if start > len(line) {
+		start = len(line)
+	}
+	text := strings.TrimSpace(line[start:])
+	text = strings.TrimSuffix(text, "then")
+	return strings.TrimSpace(text)
+}
+
+// lastStatementBlock returns the index into blocks of the block that is the last
+// statement of def b's body — i.e. the block whose `end` is the last significant
+// token before b's own `end` — or -1 when b's final statement is not a block.
+func lastStatementBlock(blocks []block, toks []token.Token, b block) int {
+	last := b.endIdx - 1
+	for last > b.openIdx && toks[last].Type == token.NEWLINE {
+		last--
+	}
+	if toks[last].Type != token.END {
+		return -1
+	}
 	for i, c := range blocks {
-		if c.openIdx > b.openIdx && c.endIdx < b.endIdx {
-			// Directly nested (no intermediate block contains c but not b).
-			direct := true
-			for _, d := range blocks {
-				if d.openIdx > b.openIdx && d.endIdx < b.endIdx &&
-					d.openIdx < c.openIdx && d.endIdx > c.endIdx {
-					direct = false
-					break
-				}
-			}
-			if direct {
-				if found >= 0 {
-					return -1
-				}
-				found = i
-			}
+		if c.endIdx == last {
+			return i
 		}
 	}
-	return found
+	return -1
 }
 
 // tokenKeyword returns the keyword text for a block-opening token type.

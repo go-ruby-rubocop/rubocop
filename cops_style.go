@@ -32,16 +32,18 @@ func (stringLiteralsCop) Inspect(src *Source, cfg CopConfig) []Offense {
 		if t.Type != token.STRING {
 			continue
 		}
-		if !isDoubleQuotedInSource(src, t) {
+		raw, ok := doubleQuotedRaw(src, t)
+		if !ok {
 			continue
 		}
-		// A backslash escape in the literal content means double quotes are needed.
-		if strings.ContainsRune(t.Lit, '\\') {
+		// A backslash escape in the raw literal content means double quotes are
+		// needed (the lexer decodes escapes into t.Lit, so inspect the source).
+		if strings.ContainsRune(raw, '\\') {
 			continue
 		}
 		offs = append(offs, Offense{
 			CopName:     "Style/StringLiterals",
-			Location:    Location{Line: t.Line, Column: t.Col, Length: len(t.Lit) + 2},
+			Location:    Location{Line: t.Line, Column: t.Col, Length: len(raw) + 2},
 			Message:     "Prefer single-quoted strings when you don't need string interpolation or special symbols.",
 			Severity:    Convention,
 			Correctable: true,
@@ -50,15 +52,25 @@ func (stringLiteralsCop) Inspect(src *Source, cfg CopConfig) []Offense {
 	return offs
 }
 
-// isDoubleQuotedInSource reports whether the STRING token t was written with
-// double quotes, by inspecting the opening delimiter byte at its position (the
-// token carries the decoded content, not the delimiter).
-func isDoubleQuotedInSource(src *Source, t token.Token) bool {
+// doubleQuotedRaw reports whether the STRING token t was written with double
+// quotes and, if so, returns the raw (un-decoded) source between the quotes. The
+// token carries the decoded content, not the delimiter, so the delimiter and the
+// verbatim body are read back out of src.Raw at the token's position.
+func doubleQuotedRaw(src *Source, t token.Token) (string, bool) {
 	off := src.offsetOf(t.Line, t.Col)
-	if off < len(src.Raw) {
-		return src.Raw[off] == '"'
+	if off >= len(src.Raw) || src.Raw[off] != '"' {
+		return "", false
 	}
-	return false
+	// Scan to the matching unescaped closing quote.
+	for i := off + 1; i < len(src.Raw); i++ {
+		switch src.Raw[i] {
+		case '\\':
+			i++ // skip the escaped byte
+		case '"':
+			return src.Raw[off+1 : i], true
+		}
+	}
+	return "", false
 }
 
 // --- Style/FrozenStringLiteralComment -----------------------------------------
@@ -135,12 +147,10 @@ func (methodDefParenthesesCop) Inspect(src *Source, cfg CopConfig) []Offense {
 		}
 		// Walk the method-name portion: IDENT/CONST/operator name, optional recv.
 		j := i + 1
-		// Skip a `self.` / `Recv.` receiver.
+		// Skip a `self.` / `Recv.` receiver. The DOT is always a real token, so the
+		// skipped-to index never passes the terminating EOF token.
 		if j+1 < len(toks) && (toks[j].Type == token.SELF || toks[j].Type == token.CONST || toks[j].Type == token.IDENT) && toks[j+1].Type == token.DOT {
 			j += 2
-		}
-		if j >= len(toks) {
-			continue
 		}
 		// The method name token.
 		nameTok := toks[j]
@@ -216,10 +226,16 @@ func (numericLiteralsCop) Inspect(src *Source, cfg CopConfig) []Offense {
 		// already contain an underscore or a non-decimal digit).
 		if strings.HasPrefix(lit, "0x") || strings.HasPrefix(lit, "0b") ||
 			strings.HasPrefix(lit, "0o") || strings.HasPrefix(lit, "0X") ||
-			strings.HasPrefix(lit, "0B") || strings.HasPrefix(lit, "0O") {
+			strings.HasPrefix(lit, "0B") || strings.HasPrefix(lit, "0O") ||
+			!allDecimalDigits(lit) {
+			// Non-decimal-base or non-plain-digit literals are not grouped.
 			continue
 		}
-		if !allDecimalDigits(lit) {
+		begin := src.offsetOf(t.Line, t.Col)
+		// The lexer strips underscores from t.Lit; read the verbatim digits back so
+		// an already-grouped literal (10_000) is not re-flagged.
+		rawDigits := rawIntLiteral(src, begin)
+		if strings.ContainsRune(rawDigits, '_') {
 			continue
 		}
 		if len(lit) < minDigits {
@@ -229,20 +245,34 @@ func (numericLiteralsCop) Inspect(src *Source, cfg CopConfig) []Offense {
 		if grouped == lit {
 			continue
 		}
-		begin := src.offsetOf(t.Line, t.Col)
 		offs = append(offs, Offense{
 			CopName:     "Style/NumericLiterals",
-			Location:    Location{Line: t.Line, Column: t.Col, Length: len(lit)},
+			Location:    Location{Line: t.Line, Column: t.Col, Length: len(rawDigits)},
 			Message:     "Use underscores(_) as thousands separator and separate every 3 digits with them.",
 			Severity:    Convention,
 			Correctable: true,
-			Correction:  &Correction{Begin: begin, End: begin + len(lit), Replacement: grouped},
+			Correction:  &Correction{Begin: begin, End: begin + len(rawDigits), Replacement: grouped},
 		})
 	}
 	return offs
 }
 
-// allDecimalDigits reports whether s is entirely ASCII decimal digits.
+// rawIntLiteral returns the verbatim decimal-digit run (including any '_' group
+// separators) of the integer literal starting at byte offset off in src.Raw.
+func rawIntLiteral(src *Source, off int) string {
+	end := off
+	for end < len(src.Raw) {
+		c := src.Raw[end]
+		if (c >= '0' && c <= '9') || c == '_' {
+			end++
+			continue
+		}
+		break
+	}
+	return src.Raw[off:end]
+}
+
+// allDecimalDigits reports whether s is a non-empty run of ASCII decimal digits.
 func allDecimalDigits(s string) bool {
 	if s == "" {
 		return false
