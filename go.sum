@@ -10,3 +10,5 @@ github.com/go-ruby-yaml/yaml v0.0.0-20260629093916-8035038027bd h1:4HGjgCdTIuIEM
 github.com/go-ruby-yaml/yaml v0.0.0-20260629093916-8035038027bd/go.mod h1:HtbQgnZpSTJBAhPg1jOKgHycZl3tXgf9ZdOu4dnHWjQ=
 github.com/go-ruby-yaml/yaml v0.0.0-20260804155707-9c1d94ea2290 h1:sACndmsnAEQA24MuxXAjrIJGrZGTZEBU+c3pn9qAwWs=
 github.com/go-ruby-yaml/yaml v0.0.0-20260804155707-9c1d94ea2290/go.mod h1:HtbQgnZpSTJBAhPg1jOKgHycZl3tXgf9ZdOu4dnHWjQ=
+github.com/go-ruby-yaml/yaml v0.0.0-20260916104302-910ced2db1c7 h1:0p98W8xQ9WMGipkUVYZcgqvfVED1pEBk4IMjmjAej2s=
+github.com/go-ruby-yaml/yaml v0.0.0-20260916104302-910ced2db1c7/go.mod h1:HtbQgnZpSTJBAhPg1jOKgHycZl3tXgf9ZdOu4dnHWjQ=
