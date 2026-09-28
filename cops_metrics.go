@@ -50,7 +50,7 @@ func (methodLengthCop) Inspect(src *Source, cfg CopConfig) []Offense {
 			CopName:  "Metrics/MethodLength",
 			Location: Location{Line: b.open.Line, Column: b.open.Col, Length: 3},
 			Message:  fmt.Sprintf("Method has too many lines. [%d/%d]", n, max),
-			Severity: Convention,
+			Severity: Refactor,
 		})
 	}
 	return offs
@@ -79,7 +79,7 @@ func (classLengthCop) Inspect(src *Source, cfg CopConfig) []Offense {
 			CopName:  "Metrics/ClassLength",
 			Location: Location{Line: b.open.Line, Column: b.open.Col, Length: 5},
 			Message:  fmt.Sprintf("Class has too many lines. [%d/%d]", n, max),
-			Severity: Convention,
+			Severity: Refactor,
 		})
 	}
 	return offs

@@ -1,4 +1,20 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>go-ruby-rubocop/.github"]
+  "extends": [
+    "github>go-ruby-rubocop/.github"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Bump the pinned rubocop the oracle compares against, so a reference change arrives as a named dependency update rather than as a red on an unrelated pull request.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "gem install rubocop --no-document -v (?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "rubygems",
+      "depNameTemplate": "rubocop"
+    }
+  ]
 }
