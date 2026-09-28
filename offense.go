@@ -25,7 +25,16 @@ import "fmt"
 type Severity int
 
 // The severity levels, in ascending order of seriousness. The zero value is
-// Convention, RuboCop's default for most Style/Layout/Metrics cops.
+// Convention, RuboCop's default for most Style and Layout cops.
+//
+// ⛔ NOT Metrics. RuboCop grew a department table --
+//
+//	DEPARTMENT_SEVERITIES = { Lint: :warning, Security: :warning,
+//	                          Metrics: :refactor }
+//
+// in cop/base.rb -- and Metrics reports R, not C. The table does not exist in
+// 1.88.1 and does exist in 1.91.0, which is why this only started failing when
+// CI's `gem install rubocop` began picking up the newer one.
 const (
 	Convention Severity = iota // C — a style/convention offense (the common case)
 	Warning                    // W — a Lint warning (a probable mistake)
