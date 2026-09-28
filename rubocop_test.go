@@ -238,10 +238,14 @@ func TestLintShadowingOuterLocalVariable(t *testing.T) {
 		"x = 1\n[1,2].each do |y|\n  puts y\nend\n", nil))
 }
 
+// ⛔ R, not C. Metrics is the one department RuboCop gives a non-default
+// severity, through DEPARTMENT_SEVERITIES in cop/base.rb. These two lines are
+// what the gem prints, checked against rubocop 1.91.0, and they are the only
+// place in this file where the letter is not C.
 func TestMetricsMethodLength(t *testing.T) {
 	wantOne(t, inspectOne(t, "Metrics/MethodLength", "t.rb", "def foo\n  a = 1\n  b = 2\n  c = 3\nend\n",
 		map[string]any{"Max": 2}),
-		"1:1: C: Metrics/MethodLength: Method has too many lines. [3/2]")
+		"1:1: R: Metrics/MethodLength: Method has too many lines. [3/2]")
 	wantNone(t, inspectOne(t, "Metrics/MethodLength", "t.rb", "def foo\n  a = 1\nend\n",
 		map[string]any{"Max": 2}))
 }
@@ -249,7 +253,7 @@ func TestMetricsMethodLength(t *testing.T) {
 func TestMetricsClassLength(t *testing.T) {
 	wantOne(t, inspectOne(t, "Metrics/ClassLength", "t.rb", "class Foo\n  a = 1\n  b = 2\n  c = 3\nend\n",
 		map[string]any{"Max": 2}),
-		"1:1: C: Metrics/ClassLength: Class has too many lines. [3/2]")
+		"1:1: R: Metrics/ClassLength: Class has too many lines. [3/2]")
 	// Blank + comment lines are not counted.
 	wantNone(t, inspectOne(t, "Metrics/ClassLength", "t.rb", "class Foo\n  a = 1\n\n  # c\nend\n",
 		map[string]any{"Max": 2}))
