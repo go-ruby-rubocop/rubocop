@@ -1,6 +1,6 @@
 module github.com/go-ruby-rubocop/rubocop
 
-go 1.26.4
+go 1.27.1
 
 require (
 	github.com/go-ruby-parser/parser v0.10.0
