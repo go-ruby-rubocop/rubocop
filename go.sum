@@ -4,5 +4,7 @@ github.com/go-ruby-parser/parser v0.12.0 h1:BYeCU7y8VVAv5HS71LWheRAM60CmhvjOq+b8
 github.com/go-ruby-parser/parser v0.12.0/go.mod h1:Se+ZvnD/4Vm0RRe1U5kZi0GmPSvSczJJXdZLiB0PlJY=
 github.com/go-ruby-parser/parser v0.13.0 h1:JspoqXWvdv1J1LSknUZmCKWwO5x1xT+1CbhFfRaEtNA=
 github.com/go-ruby-parser/parser v0.13.0/go.mod h1:Se+ZvnD/4Vm0RRe1U5kZi0GmPSvSczJJXdZLiB0PlJY=
+github.com/go-ruby-parser/parser v0.13.1 h1:gq7QVT7KdRp7nZt1UHsa73YDo77qrD8kGdQY/GVEA6g=
+github.com/go-ruby-parser/parser v0.13.1/go.mod h1:Se+ZvnD/4Vm0RRe1U5kZi0GmPSvSczJJXdZLiB0PlJY=
 github.com/go-ruby-yaml/yaml v0.0.0-20260916104302-910ced2db1c7 h1:0p98W8xQ9WMGipkUVYZcgqvfVED1pEBk4IMjmjAej2s=
 github.com/go-ruby-yaml/yaml v0.0.0-20260916104302-910ced2db1c7/go.mod h1:HtbQgnZpSTJBAhPg1jOKgHycZl3tXgf9ZdOu4dnHWjQ=
