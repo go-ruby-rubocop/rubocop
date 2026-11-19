@@ -32,7 +32,7 @@ jobs:
       - if: runner.os != 'Windows'
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "4.0.9"
+          ruby-version: "4.0.10"
       # ⛔ PINNED. The oracle compares this port against whatever the gem
       # says, so an unpinned gem means the reference moves under the suite and
       # the red lands on whatever pull request happened to be open.
